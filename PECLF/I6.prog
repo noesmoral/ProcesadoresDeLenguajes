@@ -1,0 +1,15 @@
+pedro is
+	var sum, sum2 : integer; 
+	var bol,segundo : boolean; 
+	var is : boolean;
+begin 12as
+	bol := true; 
+	sum := 10; 
+	pedro := 1;
+	if (10) then !
+		sum :=15-sum;
+	end if; 
+	segundo := not(bol);
+	sum2 := -sum; ?
+	read bol;
+end

@@ -1,0 +1,41 @@
+program pedro is
+	var sum,ult,SUM2 : integer ;
+	var sum : integer;
+	var alt : boolean
+	var alt,men : boolean ;
+	var pedro : integer ;
+	var Is : integer;
+	var ll, : integer;
+	var as hole : integer;
+begin
+1a"
+	sum := (11+1)+1;
+	sum2 := -10;
+	sum2 := pedro;
+	sum := men;
+	switch1 := 11;
+	ult := sum + 11
+	men := true;
+	men := pedro;
+	men := men or not(men or men);
+	pedro := 1;
+	alt := men
+	read sum;
+	read 7;
+	read sum+sum;
+	read men;
+	while true>10 do
+		@
+		if ult < false then
+			write sum+sum;
+			write sum+1;
+			write 1;
+			write alt;
+			write alt+alt;
+			switch := true;
+		else 
+			sum2 := -20;
+		end if;
+		&
+	end while;
+end 

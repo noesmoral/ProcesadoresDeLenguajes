@@ -1,0 +1,14 @@
+program pedro is
+	var sum, sum2,suM : integer; 
+	var bol,segundo : boolean
+	var sum :boolean;
+	var pedro : boolean;
+begin 12as
+	bol := true; 
+	sum := 10; 
+	if (bol) then !
+		sum :=15-sum;
+	end if; @
+	segundo := not(bol);
+	sum2 := -sum;
+end

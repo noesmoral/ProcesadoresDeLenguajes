@@ -1,0 +1,5 @@
+ERROR: No se ha encontrado el token program al inicio del programa, fila 1 columna 1
+ERROR: El identificador utilizado es una palabra reservada is, fila 4 columna 5
+ERROR: Esta usando el nombre del programa pedro fuera de su posicion, fila 8 columna 1
+ERROR: Se espera un resultado boolean para el bucle, fila 9 columna 7
+ERROR: El identificador bol no es integer, fila 14 columna 6

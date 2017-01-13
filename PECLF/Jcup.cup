@@ -1,0 +1,473 @@
+package PruebaFinal;
+
+//imports
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.BufferedWriter;
+import java.util.Stack;
+import PruebaFinal.estructuraPila;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+//programa principal de la parte sintactica semantica
+parser code
+{:
+//declaraciones de variables e informacion adicional 
+public static Stack<estructuraPila> pilaa = new Stack<estructuraPila>();
+public static ArrayList<String> errorSinTokensList = new ArrayList<String>(); 
+public static ArrayList<String> listaReglas = new ArrayList<String>();
+public static int contErrorSin;
+public static String nombrePrograma;
+
+//funcion principal con los metodos para imprimir y utilizar el lex
+public static void main(String argv[]) throws Exception  {
+	JcupCup ThisParser;
+	Scanner intscan;
+	String username;
+    String prueba;
+    Boolean correcto=true;
+    //obtenemos la informacion desde consola
+    do{
+    	System.out.print("Inserte nombre del fichero: ");
+    	intscan=new Scanner(System.in);
+		username = intscan.nextLine();
+    	prueba=username;
+    	if(prueba.length()>=6){
+			prueba=prueba.substring(prueba.length()-5);	//recortamos la ultima parte para comprobar la extension
+			if(prueba.equalsIgnoreCase(".prog")){
+				try{
+					ThisParser = new JcupCup(new Yylex(new java.io.FileReader(username)));
+					correcto=false;
+				}catch (Exception e) {
+					correcto=true;
+				}
+			}else{
+				System.out.println("La extension del fichero no es correcta vuelva a intentarlo.");
+			}
+		}else{
+			System.out.println("El fichero no es correcto vuelva a intentarlo.");
+		}
+    }while(correcto);
+	try {
+		//realizamos las operaciones pertinentes
+		ThisParser = new JcupCup(new Yylex(new java.io.FileReader(username)));
+		ThisParser.parse();
+		System.out.println("\nANALISIS TERMINADO:\n"); 
+		System.out.println("LISTADO TOKENS:");
+		Yylex.writeOutputFile();
+		System.out.println();
+		System.out.println("TABLA SIMBOLOS Y VARIABLES:");
+		Yylex.contenedor.ImprimirTablaSimbolo();
+		System.out.println();
+		Yylex.contenedor.ImprimirTablaVariables();
+		System.out.println();
+		System.out.println("REGLAS UTILIZADAS:");
+		JcupCup.writeOutputFileReglas();
+		System.out.println();
+		System.out.println("ERRORES LEXICOS:");
+		Yylex.writeOutputFileReglasLex();
+		System.out.println("ERRORES SINTACTICOS SEMANTICOS:");
+		JcupCup.writeOutputFile();
+		System.out.println("\nAnalisis Correcto");			            
+	} catch (Exception e) {
+		//en caso de error se muestra al menos la informacion recogida antes
+		System.out.println("\nANALISIS TERMINADO CON ALGUN ERROR NO CONTEMPLADO:\n"); 
+		System.out.println("LISTADO TOKENS:");
+		Yylex.writeOutputFile();
+		System.out.println();
+		System.out.println("TABLA SIMBOLOS Y VARIABLES:");
+		Yylex.contenedor.ImprimirTablaSimbolo();
+		System.out.println();
+		Yylex.contenedor.ImprimirTablaVariables();
+		System.out.println();
+		System.out.println("REGLAS UTILIZADAS:");
+		JcupCup.writeOutputFileReglas();
+		System.out.println();
+		System.out.println("ERRORES LEXICOS:");
+		Yylex.writeOutputFileReglasLex();
+		System.out.println("ERRORES SINTACTICOS SEMANTICOS:");
+		JcupCup.writeOutputFile();
+		System.out.println("Incorrecto");	//en caso de no terminar corretamente error
+	}
+ } 
+  
+//Impresion del archivo de errores sintacticos
+public static void writeOutputFile() throws IOException {
+	String filename1 = "filErrorSin.out";
+	BufferedWriter out1 = new BufferedWriter(new FileWriter(filename1));
+
+	for (String s : errorSinTokensList) {
+		System.out.println(s);
+		out1.write(s + "\n");
+	}
+	if(contErrorSin>0){
+		System.out.println("Cantidad de errores sintacticos: " + contErrorSin);
+		System.out.println();
+	}else{
+		System.out.println("Cantidad de errores sintacticos: 0 todo correcto");
+		System.out.println();
+	}
+	out1.close();
+}
+
+//Impresion del archivo de errores sintacticos
+public static void writeOutputFileReglas() throws IOException {
+	String filename1 = "filReglas.out";
+	BufferedWriter out1 = new BufferedWriter(new FileWriter(filename1));
+
+	for (String s : listaReglas) {
+		System.out.println("Regla utilizada: "+ s);
+		out1.write("Regla utilizada: "+ s + "\n");
+	}
+	out1.close();
+}
+
+//Metodo para añadir las variables a la lista cuando se declaran correctamente
+public static void insertarVariables(int formato){
+	estructuraPila aux;
+	while (!pilaa.empty()){	//vamos extrayendo de la pila ya que se pueden añadir varias de golpe
+		aux=pilaa.pop();
+		if(aux.nombre.toLowerCase().equalsIgnoreCase(JcupCup.nombrePrograma.toLowerCase())){	//metodo para avisar y evitar añadir si se usa el nombre del programa
+			errorSinTokensList.add("ERROR: Esta usando el nombre del programa " + JcupCup.nombrePrograma + " fuera de su posicion, fila "+aux.fila+" columna " + aux.columna);
+			contErrorSin=contErrorSin+1;
+		}else{
+			if(Yylex.contenedor.estaVariable(aux.nombre.toLowerCase())){	//comprobamos que no este repetida
+				errorSinTokensList.add("ERROR: El identificador " + aux.nombre.toLowerCase() + " ya ha sido declarado anteriormente, linea "+aux.fila+" columna "+aux.columna);
+				contErrorSin=contErrorSin+1;
+			}else{	//en funcion de si es para enteros o boolean elegimos una
+				if(formato==0){
+					Yylex.contenedor.Insertar_ListaVariables(aux.nombre.toLowerCase(), new TipoDato(aux.nombre.toLowerCase(),"Integer", 1, aux.fila, aux.columna));
+				}else{
+					Yylex.contenedor.Insertar_ListaVariables(aux.nombre.toLowerCase(), new TipoDato(aux.nombre.toLowerCase(),"Boolean", true, aux.fila, aux.columna));
+				}
+			}
+		}	
+	}	
+}
+
+//Metodo para dar valor a un identificador como variable
+public static void insertarValorVariableInteger(String valor, int contenido, int fila, int columna){
+    TipoDato aux;
+	if(valor.toLowerCase().equalsIgnoreCase(JcupCup.nombrePrograma.toLowerCase())){	//se verifica que no es igual al nombre del programa de ser asi error
+		errorSinTokensList.add("ERROR: Esta usando el nombre del programa " + JcupCup.nombrePrograma + " fuera de su posicion, fila "+fila+" columna " +columna);
+		contErrorSin=contErrorSin+1;
+    }else{
+	    if(Yylex.contenedor.estaVariable(valor)){	//verificamos que esta ese identificador ya en la lista de variabels
+	   		aux=Yylex.contenedor.BuscarSimbolo_ListaVariables(valor);
+	   		if(!aux.deQueTipo()){	//verificamos que sea boolean
+				if(contenido==555555556){	//si coincide con el codigo es que los dos son boolean y se asigna true que es el codigo correspondiente
+	    			aux.valorBoolean=true;
+	    		}else if(contenido==666666667){ //si coincide con el codigo es que los dos son boolean y se asigna false que es el codigo correspondiente
+	    			aux.valorBoolean=false;
+	    		}else{	//de no ser asi es que el receptor es boolean y el otro integer
+		    		errorSinTokensList.add("ERROR: El identificador " + valor  + " no es del mismo tipo, se espera boolean y se encuentra integer, fila "+fila+" columna "+columna);
+		    		contErrorSin=contErrorSin+1;
+		    	}
+	   		}else{	//Si se verifica que es integer
+	   			if(contenido==999999998 ){	//verificamos si el emisor es correcto de no ser asi se mete basura o se deja como esta
+					//se deja como esta
+	   			}else if(contenido==666666667 | contenido==555555556){	//si el emisor coincide con esos codigos error ya que es integer boolean
+		    		errorSinTokensList.add("ERROR: El identificador " + valor  + " no es del mismo tipo, se esperaba integer y es boolean, fila "+fila+" columna "+columna);
+		    		contErrorSin=contErrorSin+1;
+	   			}else{	//si todo es correcto se pasa el valor
+	    			aux.valorInteger=Integer.valueOf(contenido);	
+	    		}
+	    	}
+	    }else{	//si no esta el identificador receptor no se puede asignar asique error
+	    	errorSinTokensList.add("ERROR: El identificador " + valor  + " no ha sido declarado anteriormente, fila "+fila+" columna "+columna);
+	    	contErrorSin=contErrorSin+1;
+	    }	
+    }    
+}
+
+//Metodo para extraer el valor de un identificador Integer/boolean
+public static int valorIdentificador(String valor, int fila, int columna){
+    TipoDato aux;
+    if(valor.toLowerCase().equalsIgnoreCase(JcupCup.nombrePrograma.toLowerCase())){	//se verifica que no es igual al nombre del programa de ser asi error
+		errorSinTokensList.add("ERROR: Esta usando el nombre del programa " + JcupCup.nombrePrograma + " fuera de su posicion, fila "+fila+" columna " +columna);
+		contErrorSin=contErrorSin+1;
+		return 999999998; 	//error generico
+    }else{
+	    if(Yylex.contenedor.estaVariable(valor)){	//verificamos que existe
+	   		aux=Yylex.contenedor.BuscarSimbolo_ListaVariables(valor);
+	   		if(aux.deQueTipo()){ 	//si es integer se retorna su valor todo OK
+	    		return aux.valorInteger;	
+	    	}else{		//En caso de ser boolean se retorna un codigo especifico para su tratamiento, uno para cada caso, ya que en las operaciones se hacen con los dos tipos y asi se evitan fallos
+		    	if(aux.valorBoolean.toString().equalsIgnoreCase("true")){	//aunque para no mezclarlos a la hora de operar se verifica si son compatibles o error
+		    		return 555555556;	//equivalente a un true
+		    	}else{
+	    			return 666666667;	//equivalente a un false
+	    		}
+	    	}
+	    }else{	//error en caso de no encontrarse y se retorna un codigo concreto y error
+	    	errorSinTokensList.add("ERROR: El identificador " + valor  + " no ha sido declarado anteriormente se pasara basura, fila "+fila+" columna "+columna);
+	    	contErrorSin=contErrorSin+1;
+	    	return 999999998;    //error generico	
+	    }
+	}
+}
+
+//verificamos que es un entero la lectura
+public static void comprobarLeer(String valor, int fila, int columna){
+    TipoDato aux;
+    if(Yylex.contenedor.estaVariable(valor)){	//verificamos que existe
+   		aux=Yylex.contenedor.BuscarSimbolo_ListaVariables(valor);
+   		if(aux.deQueTipo()){	//verificamos que es entero
+			//correcto	
+    	}else{					//en caso de que no sea entero y sea boolean y error
+    		errorSinTokensList.add("ERROR: El identificador " + valor  + " no es integer, fila "+fila+" columna "+columna);
+    		contErrorSin=contErrorSin+1;
+    	}
+    }else{	//error si se verifica que no esta  y error
+    	errorSinTokensList.add("ERROR: El identificador " + valor  + " no ha sido declarado anteriormente, fila "+fila+" columna "+columna);
+    	contErrorSin=contErrorSin+1;   	
+    }
+}
+
+//metodo para usar comparadores en las operaciones
+public static int operadoresComparadores(int valor1, String operador, int valor2, int fila, int columna){
+	if(valor1==555555556 || valor2==555555556 || valor1==666666667 || valor2==666666667 || valor1==999999998 || valor2==999999998){	//se verifica si alguno es boolean o error
+    	errorSinTokensList.add("ERROR: Uno o varios identificador no ha sido declarado o no son del mismo tipo, fila "+fila+" columna "+columna);
+    	contErrorSin=contErrorSin+1; 	
+    	return 666666667;	//retornamos basura valida para evitar errores
+	}else{	//si ambos son correctos operamos y devolvemos su equivalente en int del true o false
+		if(operador.equalsIgnoreCase("<=")){
+			if(valor1<=valor2){
+				return 555555556;
+			}else{
+				return 666666667;
+			}
+		}else if(operador.equalsIgnoreCase("<")){
+			if(valor1<valor2){
+				return 555555556;
+			}else{
+				return 666666667;
+			}
+		}else if(operador.equalsIgnoreCase("=")){
+			if(valor1==valor2){
+				return 555555556;
+			}else{
+				return 666666667;
+			}
+		}else if(operador.equalsIgnoreCase(">")){
+			if(valor1>valor2){
+				return 555555556;
+			}else{
+				return 666666667;
+			}
+		}else if(operador.equalsIgnoreCase(">=")){
+			if(valor1>=valor2){
+				return 555555556;
+			}else{
+				return 666666667;
+			}
+		}else{
+			if(valor1!=valor2){
+				return 555555556;
+			}else{
+				return 666666667;
+			}
+		}
+	}
+}
+
+//metodo para las operaciones and y or
+public static int operadoresAO(int valor1, String operador, int valor2, int fila, int columna){
+	if((valor1==555555556 || valor1==666666667) && (valor2==555555556 || valor2==666666667)){	//verificamos que ambos son boolean o error
+		if(operador.toLowerCase().equalsIgnoreCase("and")){		//si el operador es and devolvemos el resultado de la operacion con su equivalencia en int
+		    if(valor1==555555556 && valor2==555555556){
+		    	return 555555556;
+		    }else if(valor1==666666667 && valor2==555555556){
+		    	return 666666667;
+		    }else if(valor1==555555556 && valor2==666666667){
+		    	return 666666667;
+		    }else{
+		    	return 666666667;
+		    }
+	   	}else{	//si el operador es or devolvemos el resultado de la operacion con su equivalencia en int
+		    if(valor1==555555556 && valor2==555555556){
+		    	return 555555556;
+		    }else if(valor1==666666667 && valor2==555555556){
+		    	return 555555556;
+		    }else if(valor1==555555556 && valor2==666666667){
+		    	return 555555556;
+		    }else{
+		    	return 666666667;
+		    }
+		}
+    }else{
+    	errorSinTokensList.add("ERROR: Uno o varios identificador no ha sido declarado o no son del mismo tipo, fila "+fila+" columna "+columna);
+    	contErrorSin=contErrorSin+1; 	
+    	return 666666667;	//retornamos basura valida para evitar errores
+	}
+}
+
+//funcion para el operador not
+public static int operadoresNOT(int valor1, String operador, int fila, int columna){
+	if(valor1==555555556){	//se verifica si son boolean y si da su contrario
+    	return 666666667;	//si es true devolvemos false
+	}else if(valor1==666666667){
+		return 555555556;	//si es false devolvemos true
+	}else if(valor1==999999998){
+    	errorSinTokensList.add("ERROR: El identificador no es boolean o no ha sido declarado, fila "+fila+" columna "+columna);
+    	contErrorSin=contErrorSin+1; 
+		return 999999998;	//retornamos basura
+	}else{	//en caso de que no sea asi de devilve error y su codigo
+    	errorSinTokensList.add("ERROR: El identificador no es boolean o no ha sido declarado, fila "+fila+" columna "+columna);
+    	contErrorSin=contErrorSin+1; 
+		return 999999998;	//retornamos basura
+	}
+}
+
+//metodo para verificar el inicio del programa y ver si son correctos //es ampliable para mas pero por falta de tiempo solo incorpora 2 casos
+public static void verificaStruct(String palabra, int posicion, int fila, int columna){
+	 switch (posicion) {
+        case 1: if(palabra.toLowerCase().equalsIgnoreCase("program")){
+        		}else{
+        			JcupCup.errorSinTokensList.add("ERROR: Se esperaba program y se ha encontrado " + palabra  + ", fila "+fila+" columna "+columna);
+        			JcupCup.contErrorSin=JcupCup.contErrorSin+1;
+        		}
+        		break;
+        case 2: if(palabra.toLowerCase().equalsIgnoreCase("is")){
+        		}else{
+        			JcupCup.errorSinTokensList.add("ERROR: Se esperaba is y se ha encontrado " + palabra  + ", fila "+fila+" columna "+columna);
+        			JcupCup.contErrorSin=JcupCup.contErrorSin+1;
+        		}
+        		break;
+	}
+}
+
+public static void verificarBooelan(int valor,int fila, int columna){
+	if(valor==555555556 || valor==666666667){
+		//es correcto no hacer nada
+	}else{
+		JcupCup.errorSinTokensList.add("ERROR: Se espera un resultado boolean para el bucle, fila "+fila+" columna "+columna);
+        JcupCup.contErrorSin=JcupCup.contErrorSin+1;
+	}
+}
+
+:}
+
+action code
+{:
+:}
+
+// terminales y no terminales
+terminal PROGRAM, IS, BEGIN, END, VAR, INTEGER, BOOLEAN, READ, WRITE, SKIP, WHILE, DO, IF, THEN, ELSE, AND, OR, TRUE, FALSE, NOT;
+terminal ASIGNACION;
+terminal MENOR_IGUAL, MENOR, IGUAL, MAYOR, MAYOR_IGUAL, DISTINTOS;
+terminal SUMA, RESTA, MULTIPLICACION, DIVISION;
+terminal PARENTESIS_IZQUIERDO, PARENTESIS_DERECHO, COMA, PUNTO_COMA, DOS_PUNTOS;
+terminal ENTERO, IDENTIFIER;
+
+non terminal	program, lista_declara, declara, asigna, lista_identifier, lista_otros, otros, operador_mate, sentencia_while, sentencia_if, expresion, repartidor, reservadas, continua_sentencia_if, continua_declara, continua_declara_2, leer, continua_leer, continua_leer2, escribir, continua_escribir, continua_escribir2, reg_punto_coma_leer, reg_punto_coma_escribir;
+
+// precedencia de operadores
+precedence left OR;
+precedence left AND;
+precedence left NOT;
+precedence left MENOR_IGUAL, MENOR;
+precedence left IGUAL, MAYOR;
+precedence left MAYOR_IGUAL, DISTINTOS;
+precedence left RESTA, SUMA;
+precedence left MULTIPLICACION, DIVISION;
+
+
+//principales
+start with program;
+program ::= reservadas:a1 {:JcupCup.listaReglas.add("program"); JcupCup.verificaStruct(a1.toString(),1,a1left,a1right);:} IDENTIFIER:e1 {:JcupCup.nombrePrograma=e1.toString();:} reservadas:a2 {:JcupCup.verificaStruct(a2.toString(),2,a2left,a2right);:} lista_declara BEGIN lista_otros END {: System.out.println ("Fin del analisis"); :}
+		| IDENTIFIER:e1 {:JcupCup.listaReglas.add("program"); JcupCup.errorSinTokensList.add("ERROR: No se ha encontrado el token program al inicio del programa, fila "+e1left+" columna "+e1right);JcupCup.contErrorSin=JcupCup.contErrorSin+1; JcupCup.nombrePrograma=e1.toString();:} reservadas:a2 {:JcupCup.verificaStruct(a2.toString(),2,a2left,a2right);:} lista_declara BEGIN lista_otros END {: System.out.println ("Fin del analisis"); :}
+		| IDENTIFIER:o1 {:JcupCup.listaReglas.add("program");:} IDENTIFIER:e1 {:JcupCup.errorSinTokensList.add("ERROR: No se ha encontrado el token program al inicio del programa y se ha encontrado el identificador "+o1.toString()+ " en, fila "+o1left+" columna "+o1right);JcupCup.contErrorSin=JcupCup.contErrorSin+1; JcupCup.nombrePrograma=e1.toString();:} reservadas:a2 {:JcupCup.verificaStruct(a2.toString(),2,a2left,a2right);:} lista_declara BEGIN lista_otros END {: System.out.println ("Fin del analisis"); :}
+		| {:JcupCup.listaReglas.add("program"); System.out.println("El programa esta vacio fin del analisis");JcupCup.errorSinTokensList.add("ERROR: El programa esta vacio");JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};
+
+//auxiliares principal 
+lista_declara ::= declara {:JcupCup.listaReglas.add("lista_declara");:} lista_declara | {:JcupCup.listaReglas.add("lista_declara");:};
+declara ::= VAR {:JcupCup.listaReglas.add("declara");:} lista_identifier DOS_PUNTOS continua_declara continua_declara_2; 
+continua_declara ::= INTEGER:e1 {:JcupCup.listaReglas.add("continua_declara"); JcupCup.insertarVariables(0); :} 
+		| BOOLEAN:e1 {:JcupCup.listaReglas.add("continua_declara"); JcupCup.insertarVariables(1); :}
+		| {:JcupCup.listaReglas.add("continua_declara"); JcupCup.errorSinTokensList.add("ERROR: Se ha olvidado añadir el declarador de tipo integer o boolean");JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};		
+continua_declara_2 ::= PUNTO_COMA {:JcupCup.listaReglas.add("continua_declara2");:}
+		|  {:JcupCup.listaReglas.add("continua_declara2"); JcupCup.errorSinTokensList.add("ERROR: Se ha olvidado usar punto y coma al final de la declaracion");JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};
+lista_identifier ::= repartidor COMA lista_identifier {:JcupCup.listaReglas.add("lista_identifier");:}
+		| repartidor:e1 lista_identifier	{:JcupCup.listaReglas.add("lista_identifier"); JcupCup.errorSinTokensList.add("ERROR: Falta una coma entre los idenificadores, linea "+e1left+" columna "+e1right);JcupCup.contErrorSin=JcupCup.contErrorSin+1;:}
+		| repartidor {:JcupCup.listaReglas.add("lista_identifier");:}
+		| COMA:e1 {: JcupCup.listaReglas.add("lista_identifier"); JcupCup.errorSinTokensList.add("ERROR: Falta un identificador o hay una coma extra, linea "+e1left+" columna "+e1right);JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};
+repartidor ::= IDENTIFIER:e1 {:JcupCup.listaReglas.add("repartidor"); JcupCup.pilaa.push(new estructuraPila(e1.toString(), e1left, e1right));:} 
+		| reservadas:e1 {:JcupCup.listaReglas.add("repartidor"); JcupCup.errorSinTokensList.add("ERROR: El identificador utilizado es una palabra reservada " + e1.toString()  + ", fila "+e1left+" columna "+e1right);JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};
+reservadas ::= PROGRAM:e1 {:JcupCup.listaReglas.add("reservadas"); RESULT = e1; :} 
+		| IS:e2  {:JcupCup.listaReglas.add("reservadas"); RESULT = e2; :} 
+		| BEGIN:e3  {:JcupCup.listaReglas.add("reservadas"); RESULT = e3; :}
+		| END:e4  {:JcupCup.listaReglas.add("reservadas"); RESULT = e4; :} 
+		| VAR:e5  {:JcupCup.listaReglas.add("reservadas"); RESULT = e5; :} 
+		| INTEGER:e6 {:JcupCup.listaReglas.add("reservadas"); RESULT = e6; :} 
+		| BOOLEAN:e7  {:JcupCup.listaReglas.add("reservadas"); RESULT = e7; :} 
+		| READ:e8  {:JcupCup.listaReglas.add("reservadas"); RESULT = e8; :} 
+		| WRITE:e9  {:JcupCup.listaReglas.add("reservadas"); RESULT = e9; :} 
+		| SKIP:e10 {:JcupCup.listaReglas.add("reservadas"); RESULT = e10; :} 
+		| WHILE:e11  {:JcupCup.listaReglas.add("reservadas"); RESULT = e11; :} 
+		| DO:e12  {:JcupCup.listaReglas.add("reservadas"); RESULT = e12; :} 
+		| IF:e14  {:JcupCup.listaReglas.add("reservadas"); RESULT = e14; :} 
+		| THEN:e15  {:JcupCup.listaReglas.add("reservadas"); RESULT = e15; :} 
+		| ELSE:e16  {:JcupCup.listaReglas.add("reservadas"); RESULT = e16; :} 
+		| AND:e17  {:JcupCup.listaReglas.add("reservadas"); RESULT = e17; :} 
+		| OR:e18 {:JcupCup.listaReglas.add("reservadas"); RESULT = e18; :} 
+		| TRUE:e19  {:JcupCup.listaReglas.add("reservadas"); RESULT = e19; :} 
+		| FALSE:e20  {:JcupCup.listaReglas.add("reservadas"); RESULT = e20; :} 
+		| NOT:e21  {:JcupCup.listaReglas.add("reservadas"); RESULT = e21; :};
+
+lista_otros ::=  otros lista_otros {:JcupCup.listaReglas.add("lista_otros");:}
+		| {:JcupCup.listaReglas.add("lista_otros");:};
+otros ::= asigna {:JcupCup.listaReglas.add("otros");:}
+		| sentencia_while  {:JcupCup.listaReglas.add("otros");:}
+		| sentencia_if  {:JcupCup.listaReglas.add("otros");:}
+		| leer {:JcupCup.listaReglas.add("otros");:}
+		| escribir {:JcupCup.listaReglas.add("otros");:}
+		| SKIP {:JcupCup.listaReglas.add("otros");:};
+
+asigna ::= IDENTIFIER:e1  ASIGNACION expresion:e2 PUNTO_COMA  {:JcupCup.listaReglas.add("asigna"); JcupCup.insertarValorVariableInteger(e1.toString(),Integer.parseInt(e2.toString()), e1left, e1right);:} 
+		| IDENTIFIER:e1 ASIGNACION expresion:e2   {:JcupCup.listaReglas.add("asigna"); JcupCup.insertarValorVariableInteger(e1.toString(),Integer.parseInt(e2.toString()), e1left, e1right);JcupCup.errorSinTokensList.add("ERROR: Se ha olvidado usar punto y coma al final, linea "+e2left+ " columna "+e2right);JcupCup.contErrorSin=JcupCup.contErrorSin+1;:} ;
+
+sentencia_if ::= IF expresion:e1 {:JcupCup.listaReglas.add("sentencia_if"); JcupCup.verificarBooelan(Integer.parseInt(e1.toString()), e1left, e1right);:} THEN lista_otros continua_sentencia_if ;
+continua_sentencia_if::= END IF PUNTO_COMA {:JcupCup.listaReglas.add("continua_sentencia_if");:}
+		| ELSE lista_otros END IF PUNTO_COMA {:JcupCup.listaReglas.add("continua_sentencia_if");:};
+
+sentencia_while ::= WHILE expresion:e1 {:JcupCup.listaReglas.add("sentencia_while"); JcupCup.verificarBooelan(Integer.parseInt(e1.toString()), e1left, e1right);:} DO lista_otros END WHILE PUNTO_COMA ;
+
+leer ::= READ {:JcupCup.listaReglas.add("leer");:} continua_leer reg_punto_coma_leer;
+continua_leer ::= continua_leer {:JcupCup.listaReglas.add("continua_leer");:} operador_mate continua_leer2 | continua_leer2 {:JcupCup.listaReglas.add("continua_leer");:};
+continua_leer2 ::=IDENTIFIER:e1 {:JcupCup.listaReglas.add("continua_leer2"); JcupCup.comprobarLeer(e1.toString(), e1left, e1right);:}  
+		| ENTERO {:JcupCup.listaReglas.add("continua_leer2");:} ;	
+reg_punto_coma_leer ::= PUNTO_COMA {:JcupCup.listaReglas.add("reg_punto_coma_leer");:}
+		| {:JcupCup.listaReglas.add("reg_punto_coma_leer"); JcupCup.errorSinTokensList.add("ERROR: Se ha olvidado usar punto y coma al final de la expresion read ");JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};
+		
+escribir ::= WRITE {:JcupCup.listaReglas.add("escribir");:} continua_escribir reg_punto_coma_escribir ;
+continua_escribir ::= continua_escribir {:JcupCup.listaReglas.add("continua_escribir");:} operador_mate continua_escribir2 | continua_escribir2 {:JcupCup.listaReglas.add("continua_escribir");:};
+continua_escribir2 ::= IDENTIFIER  {:JcupCup.listaReglas.add("continua_escribir2");:}
+		| ENTERO {:JcupCup.listaReglas.add("continua_escribir2");:};
+reg_punto_coma_escribir ::= PUNTO_COMA {:JcupCup.listaReglas.add("reg_punto_coma_escribir");:}
+		| {:JcupCup.listaReglas.add("reg_punto_coma_escribir"); JcupCup.errorSinTokensList.add("ERROR: Se ha olvidado usar punto y coma al final de la expresion write ");JcupCup.contErrorSin=JcupCup.contErrorSin+1;:};
+		
+//otros
+operador_mate ::= SUMA {:JcupCup.listaReglas.add("operador_mate");:}
+		| RESTA {:JcupCup.listaReglas.add("operador_mate");:}
+		| MULTIPLICACION {:JcupCup.listaReglas.add("operador_mate");:}
+		| DIVISION {:JcupCup.listaReglas.add("operador_mate");:};
+expresion ::= ENTERO:E1 {:RESULT = Integer.parseInt(E1.toString()) ; :}
+		| TRUE {:JcupCup.listaReglas.add("expresion"); RESULT= 555555556; :}
+		| FALSE {:JcupCup.listaReglas.add("expresion"); RESULT= 666666667; :}
+        | IDENTIFIER:E1 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.valorIdentificador(E1.toString(), E1left, E1right); :}
+        | expresion:E1 SUMA expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= Integer.parseInt(E1.toString()) + Integer.parseInt(E2.toString()); :}
+        | expresion:E1 RESTA expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= Integer.parseInt(E1.toString()) - Integer.parseInt(E2.toString()); :}
+        | expresion:E1 MULTIPLICACION expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= Integer.parseInt(E1.toString()) * Integer.parseInt(E2.toString()); :}
+        | expresion:E1 DIVISION expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= Integer.parseInt(E1.toString()) / Integer.parseInt(E2.toString()); :}
+        | expresion:E1 MENOR_IGUAL:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresComparadores(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+		| expresion:E1 MENOR:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresComparadores(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+        | expresion:E1 IGUAL:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresComparadores(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+		| expresion:E1 MAYOR:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresComparadores(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+        | expresion:E1 MAYOR_IGUAL:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresComparadores(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+		| expresion:E1 DISTINTOS:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresComparadores(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+        | expresion:E1 AND:o1 expresion:E2 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresAO(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right); :}
+        | expresion:E1 OR:o1 expresion:E2	 {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresAO(Integer.parseInt(E1.toString()), o1.toString(), Integer.parseInt(E2.toString()), E1left, E1right);  :}
+        | NOT:o1 PARENTESIS_IZQUIERDO expresion:E1 PARENTESIS_DERECHO {:JcupCup.listaReglas.add("expresion"); RESULT= JcupCup.operadoresNOT(Integer.parseInt(E1.toString()), o1.toString(), E1left, E1right); :}
+        | PARENTESIS_IZQUIERDO expresion:E1 PARENTESIS_DERECHO {:JcupCup.listaReglas.add("expresion"); RESULT= Integer.parseInt(E1.toString()); :}
+        | RESTA expresion:E1 {: JcupCup.listaReglas.add("expresion"); RESULT= 0 - Integer.parseInt(E1.toString()); :} ;

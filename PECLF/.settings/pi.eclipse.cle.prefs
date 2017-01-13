@@ -1,0 +1,11 @@
+//Jcup.cup/cup-compact-red=false
+//Jcup.cup/cup-debug=false
+//Jcup.cup/cup-expected-conflicts=0
+//Jcup.cup/cup-no-positions=false
+//Jcup.cup/cup-no-scanner=false
+//Jcup.cup/cup-non-terms=false
+//Jcup.cup/cup-output=src
+//Jcup.cup/cup-parser-class=JcupCup
+//Jcup.cup/cup-symbols-class=JcupSym
+//Jcup.cup/cup-symbols-if=true
+eclipse.preferences.version=1

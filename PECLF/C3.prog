@@ -1,0 +1,12 @@
+program p2 is
+	var sum, sum2 : integer; 
+	var bol,segundo : boolean; 
+begin 
+	bol := true; 
+	sum := 10; 
+	if (bol) then
+		sum :=15-sum;
+	end if; 
+	segundo := not(bol);
+	sum2 := -sum;
+end
